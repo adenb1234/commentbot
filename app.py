@@ -18,7 +18,7 @@ def load_and_process_data():
     csv_path = os.path.join(os.path.dirname(__file__), 'heathercomments.csv')
     df = pd.read_csv(csv_path)
     model = SentenceTransformer('all-MiniLM-L6-v2')
-    df['embedding'] = df['Comment'].apply(lambda x: model.encode(x))
+    df['embedding'] = df.apply(lambda row: model.encode(f"{row['Article']}: {row['Comment']}"), axis=1)
     return df
 
 # Function to find most relevant comments
@@ -33,18 +33,24 @@ df = load_and_process_data()
 
 st.title("Article Comments Analysis")
 
+# Article selection
+article_titles = df['Article'].unique()
+selected_article = st.selectbox("Select an article:", article_titles)
+
 # User input
-user_question = st.text_input("Ask a question about the comments on the Simone Biles article:")
+user_question = st.text_input("Ask a question about the comments on the selected article:")
 
 # Process user input
 if user_question:
-    relevant_comments = find_relevant_comments(user_question, df)
-    context = "\n\n".join([f"Comment: {row['Comment']}" for _, row in relevant_comments.iterrows()])
+    # Filter comments for the selected article
+    article_df = df[df['Article'] == selected_article]
+    relevant_comments = find_relevant_comments(user_question, article_df)
+    context = "\n\n".join([f"Article: {row['Article']}\nComment: {row['Comment']}" for _, row in relevant_comments.iterrows()])
     
-    prompt = f"""You are a helpful assistant that analyzes comments on an article about Simone Biles. 
+    prompt = f"""You are a helpful assistant that analyzes comments on various articles. The current article is "{selected_article}".
     Be concise and use bullet points whenever possible.
 
-    Context:\n{context}\n\nQuestion: {user_question}\n\nPlease answer the question based on the provided comments."""
+    Context:\n{context}\n\nQuestion: {user_question}\n\nPlease answer the question based on the provided comments for the article "{selected_article}"."""
     
     try:
         response = client.messages.create(
@@ -69,4 +75,4 @@ if user_question:
         st.error(f"Error processing AI response: {str(e)}")
 
 st.sidebar.markdown("### About")
-st.sidebar.write("This AI assistant analyzes comments on an article about Simone Biles, powered by Claude AI.")
+st.sidebar.write("This AI assistant analyzes comments on various articles, powered by Claude AI.")
