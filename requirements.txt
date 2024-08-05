@@ -1,0 +1,6 @@
+streamlit
+anthropic
+pandas
+sentence-transformers
+scikit-learn
+numpy
